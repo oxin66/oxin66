@@ -35,8 +35,25 @@ export type TUserUpdateByAdminRequest = z.infer<typeof UserUpdateByAdminSchema>;
 
 // Validator for updating order status by admin
 export const OrderStatusUpdateByAdminSchema = z.object({
-  status: z.string().min(1, { message: "وضعیت سفارش نمی‌تواند خالی باشد." }), // Admin can set to any valid status string
+  status: z.string().min(1, { message: "وضعیت سفارش نمی‌تواند خالی باشد." }),
   admin_reason: z.string().max(500, "دلیل تغییر وضعیت نمی‌تواند بیشتر از ۵۰۰ کاراکتر باشد.").optional().nullable(),
 });
 
 export type TOrderStatusUpdateByAdminRequest = z.infer<typeof OrderStatusUpdateByAdminSchema>;
+
+// Validator for updating a review by admin
+export const ReviewUpdateByAdminSchema = z.object({
+  rating: z.number()
+    .int()
+    .min(1, { message: 'امتیاز نمی‌تواند کمتر از ۱ باشد.' })
+    .max(5, { message: 'امتیاز نمی‌تواند بیشتر از ۵ باشد.' })
+    .optional(),
+  comment: z.string()
+    .max(1500, { message: 'نظر نمی‌تواند بیشتر از ۱۵۰۰ کاراکتر باشد.' })
+    .optional()
+    .nullable(),
+  is_public: z.boolean({invalid_type_error: "مقدار نمایش عمومی باید true یا false باشد."}).optional(),
+  admin_moderation_notes: z.string().max(500, "یادداشت بررسی ادمین نمی‌تواند بیشتر از ۵۰۰ کاراکتر باشد.").optional().nullable(),
+});
+
+export type TReviewUpdateByAdminRequest = z.infer<typeof ReviewUpdateByAdminSchema>;
