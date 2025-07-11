@@ -30,8 +30,15 @@ export default async function ChefDashboardLayout({
                 HomeFeast (آشپز)
               </Link>
             </div>
-            <div className="flex items-center space-x-4 space-x-reverse">
-              <p className="text-sm text-gray-700">
+            <div className="flex items-center space-x-3 space-x-reverse">
+              {userProfile.avatarUrl && (
+                <img
+                  src={userProfile.avatarUrl}
+                  alt="آواتار آشپز"
+                  className="h-8 w-8 rounded-full object-cover"
+                />
+              )}
+              <p className="text-sm text-gray-700 hidden sm:block">
                 خوش آمدید، {userProfile.fullName || userProfile.email} (آشپز)
               </p>
               <SignOutButton />
