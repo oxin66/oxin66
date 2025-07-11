@@ -67,9 +67,14 @@ const OrderListItem: React.FC<OrderListItemProps> = ({ order, userRole, onSelect
           {/* TODO: Translate status to Persian */}
           {order.status === 'pending_bids' ? 'در انتظار پیشنهاد' :
            order.status === 'chef_selected' ? 'آشپز انتخاب شد' :
+           order.status === 'in_preparation' ? 'در حال آماده‌سازی' :
+           order.status === 'ready_for_delivery' ? 'آماده تحویل' :
+           order.status === 'out_for_delivery' ? 'ارسال شده' :
+           order.status === 'delivered' ? 'تحویل داده شد' :
            order.status === 'completed' ? 'تکمیل شده' :
            order.status === 'cancelled_by_user' ? 'لغو توسط کاربر' :
            order.status === 'cancelled_by_chef' ? 'لغو توسط آشپز' :
+           order.status === 'disputed' ? 'مورد اختلاف' :
            order.status}
         </span>
       </div>

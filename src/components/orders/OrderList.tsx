@@ -20,23 +20,24 @@ interface PaginationInfo {
 
 const OrderList: React.FC<OrderListProps> = ({ userRole, initialOrders, statusFilter, onOrderSelect }) => {
   const [orders, setOrders] = useState<OrderItem[]>(initialOrders || []);
-  const [isLoading, setIsLoading] = useState(!initialOrders); // Load if no initial orders
+  const [isLoading, setIsLoading] = useState(!initialOrders);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<PaginationInfo>({
     currentPage: 1,
-    pageSize: 10, // Default page size
+    pageSize: 10,
   });
+  const supabase = createClient(); // Supabase client
 
-  const fetchOrders = useCallback(async (page = 1) => {
-    setIsLoading(true);
-    setError(null);
+  const fetchOrders = useCallback(async (page = 1, newPageSize?: number) => {
+    const currentLimit = newPageSize || pagination.pageSize;
+    // setError(null); // Keep error until successful fetch
+    // setIsLoading(true); // Already handled or handled differently for realtime
+
     try {
-      let url = `/api/orders?page=${page}&limit=${pagination.pageSize}`;
+      let url = `/api/orders?page=${page}&limit=${currentLimit}`;
       if (statusFilter) {
         url += `&status=${statusFilter}`;
       }
-      // If userRole is 'chef', the API defaults to 'pending_bids' if no statusFilter is provided.
-      // If userRole is 'user', the API defaults to their own orders.
 
       const response = await fetch(url);
       if (!response.ok) {
@@ -46,31 +47,90 @@ const OrderList: React.FC<OrderListProps> = ({ userRole, initialOrders, statusFi
       const data = await response.json();
       setOrders(data.data || []);
       if (data.pagination) {
-        setPagination(prev => ({
-            ...prev,
+        setPagination({ // Update pagination state fully
             currentPage: data.pagination.currentPage,
+            pageSize: currentLimit, // use the actual limit used for the fetch
             totalItems: data.pagination.totalItems,
             totalPages: data.pagination.totalPages,
-        }));
+        });
       } else {
-        // If API doesn't return pagination, reset it or handle accordingly
-        setPagination(prev => ({ ...prev, currentPage: page, totalItems: data.data?.length || 0, totalPages: 1 }));
+        setPagination({ currentPage: page, pageSize: currentLimit, totalItems: data.data?.length || 0, totalPages: 1 });
       }
-
+       setError(null); // Clear error on successful fetch
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'یک خطای ناشناخته رخ داد.';
       setError(errorMessage);
-      setOrders([]); // Clear orders on error
+      // setOrders([]); // Don't clear orders on error, keep stale data if any
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Set loading to false after fetch attempt
     }
-  }, [statusFilter, pagination.pageSize]); // userRole is implicitly handled by API
+  }, [statusFilter, pagination.pageSize]);
 
   useEffect(() => {
-    if (!initialOrders) { // Only fetch if no initial orders are provided
-        fetchOrders(1); // Fetch initial page
+    if (!initialOrders) {
+      setIsLoading(true); // Set loading true before initial fetch
+      fetchOrders(1);
     }
-  }, [fetchOrders, initialOrders]);
+
+    // Realtime subscription for Chefs viewing 'pending_bids' orders
+    if (userRole === 'chef' && (!statusFilter || statusFilter === 'pending_bids')) {
+      const channel = supabase
+        .channel('public-orders-pending-bids')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT', // Listen only to new orders
+            schema: 'public',
+            table: 'orders',
+            filter: `status=eq.pending_bids` // Only for new orders that are pending bids
+          },
+          (payload) => {
+            console.log('Realtime: New pending_bids order received!', payload);
+            // Refetch the current page of orders to include the new one if it falls on this page,
+            // or simply refetch page 1 to show the newest.
+            // For simplicity, refetching current page. A more robust solution might add to list if on page 1.
+            fetchOrders(pagination.currentPage);
+          }
+        )
+        .on( // Also listen to updates if an order is no longer pending_bids (e.g. chef_selected or cancelled)
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'orders',
+            // We need to check if the OLD status was pending_bids and new is not,
+            // or if an order becomes pending_bids (e.g. re-opened, though less common).
+            // This filter is complex for Supabase Realtime directly.
+            // A simpler approach is to refetch on any UPDATE to orders if it might affect the list.
+            // Or, more targeted: if an order ID that IS in the current list changes status away from pending_bids.
+          },
+          (payload) => {
+            // If an order in the current list is updated away from pending_bids
+            const updatedOrder = payload.new as OrderItem;
+            if (orders.some(o => o.id === updatedOrder.id) && updatedOrder.status !== 'pending_bids') {
+                console.log('Realtime: An order in the list is no longer pending bids', payload);
+                fetchOrders(pagination.currentPage); // Refetch to remove it
+            }
+            // If an order becomes pending_bids (less common, but possible)
+            // This is covered if the INSERT listener also handles orders becoming pending_bids
+          }
+        )
+        .subscribe((status, err) => {
+          if (status === 'SUBSCRIBED') {
+            console.log(`Chef subscribed to new pending_bids orders.`);
+          }
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.error(`Chef subscription error for pending_bids orders:`, err || status);
+            // setError(`خطا در اتصال به به‌روزرسانی‌های زنده سفارشات. ${err?.message || ''}`);
+          }
+        });
+
+      return () => {
+        supabase.removeChannel(channel);
+        console.log(`Chef unsubscribed from new pending_bids orders.`);
+      };
+    }
+  }, [fetchOrders, initialOrders, userRole, statusFilter, supabase, pagination.currentPage, orders]); // Added orders to deps for update listener
 
   const handlePageChange = (newPage: number) => {
     if (newPage > 0 && newPage <= (pagination.totalPages || 1)) {

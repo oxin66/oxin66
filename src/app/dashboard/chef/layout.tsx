@@ -47,10 +47,10 @@ export default async function ChefDashboardLayout({
               <h3 className="text-lg font-semibold text-gray-700 mb-4">منوی آشپز</h3>
               <nav className="space-y-2">
                 <Link href="/dashboard/chef/orders" className="block px-3 py-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-md">
-                  سفارشات در انتظار پیشنهاد
+                  بازار سفارشات (در انتظار پیشنهاد)
                 </Link>
-                <Link href="/dashboard/chef/bids" className="block px-3 py-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-md">
-                  پیشنهادات من
+                <Link href="/dashboard/chef/my-bids" className="block px-3 py-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-md">
+                  پیشنهادات ارسالی من
                 </Link>
                 <Link href="/dashboard/chef/active-orders" className="block px-3 py-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-md">
                   سفارشات فعال من
