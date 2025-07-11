@@ -52,6 +52,9 @@ export default async function UserDashboardLayout({
                 <Link href="/dashboard/user/orders/create" className="block px-3 py-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-md">
                   ایجاد سفارش جدید
                 </Link>
+                <Link href="/dashboard/chat" className="block px-3 py-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-md">
+                  گفتگوها
+                </Link>
                 <Link href="/dashboard/user/profile" className="block px-3 py-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-md">
                   پروفایل کاربری
                 </Link>

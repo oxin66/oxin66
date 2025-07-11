@@ -131,9 +131,39 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
         if (rejectOthersError) {
           console.warn('Warning: Could not reject other pending bids:', rejectOthersError.message);
-          // This is not critical enough to fail the whole operation, but should be logged.
+        }
+
+        // 3. Create a chat room for this order if it doesn't exist
+        const { data: existingChatRoom, error: chatRoomCheckError } = await supabase
+          .from('chat_rooms')
+          .select('id')
+          .eq('order_id', bidData.order_id)
+          .maybeSingle();
+
+        if (chatRoomCheckError) {
+          console.error('Error checking for existing chat room:', chatRoomCheckError.message);
+          // Not critical enough to fail the bid acceptance, but log it.
+        }
+
+        if (!existingChatRoom && !chatRoomCheckError) {
+          const { error: createChatRoomError } = await supabase
+            .from('chat_rooms')
+            .insert({
+              order_id: bidData.order_id,
+              user_id: orderData.user_id, // User who owns the order
+              chef_id: bidData.chef_id,   // Chef whose bid was accepted
+              updated_at: new Date().toISOString(), // Initialize updated_at
+            });
+
+          if (createChatRoomError) {
+            console.error('Error creating chat room:', createChatRoomError.message);
+            // Also not critical enough to fail bid acceptance, but needs logging/monitoring.
+          } else {
+            console.log(`Chat room created for order ${bidData.order_id}`);
+          }
         }
         // TODO: Emit WebSocket events: to accepted chef, to other chefs, to order owner (confirmation)
+        // TODO: Notify user/chef about chat room creation or link to it.
       } else { // newStatus === 'rejected'
         // TODO: Emit WebSocket event: to rejected chef, to order owner (confirmation)
       }

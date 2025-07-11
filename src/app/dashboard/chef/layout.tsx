@@ -55,6 +55,9 @@ export default async function ChefDashboardLayout({
                 <Link href="/dashboard/chef/active-orders" className="block px-3 py-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-md">
                   سفارشات فعال من
                 </Link>
+                 <Link href="/dashboard/chat" className="block px-3 py-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-md">
+                  گفتگوها
+                </Link>
                 <Link href="/dashboard/chef/menu" className="block px-3 py-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-md">
                   مدیریت منوها
                 </Link>
