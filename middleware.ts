@@ -82,21 +82,59 @@ export async function middleware(request: NextRequest) {
     }
 
     const userRole = profile?.role;
+    const accountStatus = profile?.account_status;
 
+    // Check account status. If not 'active', prevent access to protected routes and log them out.
+    // This check should come before role-based dashboard access.
+    if (accountStatus && accountStatus !== 'active') {
+      // For API routes, return 403. For pages, redirect to login with a message.
+      // It's also a good idea to sign the user out.
+      if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/')) {
+        return NextResponse.json({ message: `دسترسی شما به دلیل وضعیت حساب (${accountStatus}) مسدود شده است.` }, { status: 403 });
+      }
+
+      // Attempt to sign the user out by clearing cookies. More robust sign-out might need an API call if not done by Supabase client auto.
+      // This is a simplified cookie clearing. Supabase uses specific cookie names.
+      // A better approach for sign-out in middleware is tricky without direct access to Supabase client's signOut.
+      // The most reliable way is to redirect to a page that triggers sign-out on client-side, or an API route.
+      // For now, just redirect. User won't be able to do much anyway if backend APIs also check account_status.
+      console.log(`Middleware: User ${session.user.id} with account status '${accountStatus}' attempted to access ${pathname}. Redirecting to login.`);
+      const redirectUrl = new URL('/login', request.url);
+      redirectUrl.searchParams.set('error', 'account_not_active');
+      redirectUrl.searchParams.set('status', accountStatus);
+
+      // Clear Supabase auth cookies - names might vary based on Supabase version/config
+      // This is a best-effort, actual sign-out should ideally be handled by Supabase client or auth helper.
+      const supabaseAuthCookiePrefix = 'sb-'; // Common prefix
+      request.cookies.getAll().forEach(cookie => {
+        if (cookie.name.startsWith(supabaseAuthCookiePrefix)) {
+          res.cookies.delete(cookie.name, { path: '/' });
+        }
+      });
+      // For @supabase/ssr, specific cookie handling is needed.
+      // The most robust solution is often to let backend API calls fail for this user,
+      // and the client-side handles the 401/403 by logging out.
+      // Or redirect to a dedicated "/auth/signout" page that then redirects to login.
+
+      return NextResponse.redirect(redirectUrl);
+    }
+
+
+    // Role-Based Access Control (RBAC)
     if (pathname.startsWith('/dashboard/user')) {
-      if (userRole !== 'user' && userRole !== 'admin') { // Assuming admin can access user dashboard
+      if (userRole !== 'user' && userRole !== 'admin') {
         console.log(`Middleware: Unauthorized access to /dashboard/user for role: ${userRole}`);
-        return NextResponse.redirect(new URL('/?error=unauthorized_dashboard', request.url)); // Or a specific unauthorized page
+        return NextResponse.redirect(new URL('/?error=unauthorized_dashboard', request.url));
       }
     } else if (pathname.startsWith('/dashboard/chef')) {
-      if (userRole !== 'chef' && userRole !== 'admin') { // Assuming admin can access chef dashboard
+      if (userRole !== 'chef' && userRole !== 'admin') {
         console.log(`Middleware: Unauthorized access to /dashboard/chef for role: ${userRole}`);
         return NextResponse.redirect(new URL('/?error=unauthorized_dashboard', request.url));
       }
     } else if (pathname.startsWith('/dashboard/admin')) {
       if (userRole !== 'admin') {
         console.log(`Middleware: Unauthorized access to /dashboard/admin for role: ${userRole}. Redirecting.`);
-        return NextResponse.redirect(new URL('/?error=admin_only_access_denied', request.url)); // Redirect to home with a specific error
+        return NextResponse.redirect(new URL('/?error=admin_only_access_denied', request.url));
       }
     }
 

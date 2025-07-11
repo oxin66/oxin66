@@ -11,8 +11,9 @@ export interface UserProfile {
   bio?: string | null;
   kitchen_name?: string | null;
   specialties?: string[] | null;
-  average_rating?: number | null;   // Added for chefs
-  total_reviews?: number | null;    // Added for chefs
+  average_rating?: number | null;
+  total_reviews?: number | null;
+  account_status?: 'active' | 'suspended' | 'banned_by_admin' | 'pending_deletion' | string | null; // Added
   // Add other profile fields as needed
 }
 
@@ -37,7 +38,7 @@ export async function getCurrentUserProfile(cookieStoreAccessor: () => ReadonlyR
   // Now fetch the profile information from 'profiles' table
   const { data: profileData, error: profileError } = await supabase
     .from('profiles')
-    .select('role, full_name, avatar_url, verification_status, bio, kitchen_name, specialties, average_rating, total_reviews') // Added rating fields
+    .select('role, full_name, avatar_url, verification_status, bio, kitchen_name, specialties, average_rating, total_reviews, account_status') // Added account_status
     .eq('id', user.id)
     .single(); // Assuming one profile per user
 
@@ -66,8 +67,9 @@ export async function getCurrentUserProfile(cookieStoreAccessor: () => ReadonlyR
     bio: profileData?.bio || null,
     kitchen_name: profileData?.kitchen_name || null,
     specialties: profileData?.specialties || null,
-    average_rating: profileData?.average_rating ? parseFloat(String(profileData.average_rating)) : null, // Ensure number
-    total_reviews: profileData?.total_reviews || null,     // Added
+    average_rating: profileData?.average_rating ? parseFloat(String(profileData.average_rating)) : null,
+    total_reviews: profileData?.total_reviews || null,
+    account_status: profileData?.account_status || null,   // Added
   };
 }
 

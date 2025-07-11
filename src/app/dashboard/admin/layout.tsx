@@ -59,11 +59,11 @@ export default async function AdminDashboardLayout({
                 >
                   مدیریت تأیید آشپزها
                 </Link>
-                {/* <Link
+                <Link
                   href="/dashboard/admin/users"
                   className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-slate-100 hover:text-slate-900 rounded-md transition-colors"
                 >
-                  مدیریت کاربران (به زودی)
+                  مدیریت کاربران
                 </Link>
                 <Link
                   href="/dashboard/admin/orders"

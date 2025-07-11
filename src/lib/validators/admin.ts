@@ -13,3 +13,22 @@ export const ChefVerificationStatusSchema = z.object({
 });
 
 export type TChefVerificationStatusRequest = z.infer<typeof ChefVerificationStatusSchema>;
+
+export const UserUpdateByAdminSchema = z.object({
+  full_name: z.string()
+    .min(3, { message: 'نام و نام خانوادگی باید حداقل ۳ کاراکتر باشد.' })
+    .max(100)
+    .optional(),
+  phone_number: z.string()
+    .regex(/^09[0-9]{9}$/, { message: 'شماره موبایل نامعتبر است.' })
+    .optional()
+    .nullable(),
+  role: z.enum(['user', 'chef', 'admin'], { invalid_type_error: "نقش انتخاب شده معتبر نیست."}).optional(),
+  // For chefs, admin can also update verification_status via this endpoint if desired, or use the dedicated one
+  verification_status: z.enum(['pending_review', 'approved', 'rejected', 'needs_more_info']).optional(),
+  account_status: z.enum(['active', 'suspended', 'banned_by_admin', 'pending_deletion'], { invalid_type_error: "وضعیت حساب نامعتبر است."}).optional(),
+  // Admin notes can be part of this update too
+  admin_general_notes: z.string().max(1000, "یادداشت ادمین نمی‌تواند بیشتر از ۱۰۰۰ کاراکتر باشد.").optional().nullable(),
+});
+
+export type TUserUpdateByAdminRequest = z.infer<typeof UserUpdateByAdminSchema>;
