@@ -50,6 +50,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .select(`
         *,
         profiles!bids_chef_id_fkey (
+          id,
           full_name,
           avatar_url,
           average_rating,

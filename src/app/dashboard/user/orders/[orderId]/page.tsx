@@ -22,7 +22,7 @@ async function getOrderDetails(orderId: string, supabaseClient: any, currentUser
         profiles!orders_user_id_fkey (full_name, avatar_url),
         bids!orders_accepted_bid_id_fkey (
             *,
-            profiles!bids_chef_id_fkey (full_name, avatar_url)
+            profiles!bids_chef_id_fkey (id, full_name, avatar_url, average_rating, total_reviews) // Added chef id and rating info
         ),
         reviews ( * ),
         chat_rooms!order_id (id) -- Join to get chat room ID
@@ -144,10 +144,18 @@ export default async function UserOrderDetailsPage({ params }: UserOrderDetailsP
       </div>
 
       {/* Future sections: Chat with chef (if chef_selected), Payment, Delivery Tracking etc. */}
-      {order.status === 'chef_selected' && order.bids && (
+      {order.status === 'chef_selected' && order.bids && order.bids.profiles && (
         <div className="mt-8 p-6 bg-green-50 border-l-4 border-green-500 rounded-lg">
             <h2 className="text-xl font-semibold text-green-700 mb-3">آشپز انتخاب شده</h2>
-            <p><strong>نام آشپز:</strong> {order.bids.profiles?.full_name || 'نامشخص'}</p>
+            <p>
+              <strong>نام آشپز: </strong>
+              <Link href={`/chefs/${order.bids.profiles.id}`} className="text-blue-600 hover:text-blue-700 hover:underline">
+                {order.bids.profiles.full_name || 'مشاهده پروفایل'}
+              </Link>
+              {order.bids.profiles.average_rating !== null && order.bids.profiles.total_reviews !== null && (
+                <span className="text-xs mx-1">(<AverageRatingDisplay averageRating={order.bids.profiles.average_rating} totalReviews={order.bids.profiles.total_reviews} size="small" />)</span>
+              )}
+            </p>
             <p><strong>مبلغ توافقی:</strong> {Number(order.final_bid_amount || order.bids.bid_amount).toLocaleString('fa-IR')} تومان</p>
             <div className="mt-4 space-y-3">
               <div>

@@ -1,8 +1,10 @@
 import React from 'react';
-import AverageRatingDisplay from '@/components/reviews/AverageRatingDisplay'; // Import
+import AverageRatingDisplay from '@/components/reviews/AverageRatingDisplay';
+import Link from 'next/link'; // Import Link
 
 // Align with the bid data structure returned by /api/orders/[orderId]/bids GET endpoint
 export interface BidChefProfile {
+  id: string; // Ensure chef ID is available in profile data for linking
   full_name: string | null;
   avatar_url?: string | null;
   average_rating?: number | null;
@@ -61,10 +63,21 @@ const BidListItem: React.FC<BidListItemProps> = ({
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3">
         <div className="mb-2 sm:mb-0">
             <h4 className="text-lg font-semibold text-gray-800">
-                پیشنهاد از: {bid.profiles?.full_name || 'آشپز ناشناس'}
+                پیشنهاد از:
+                {bid.profiles?.id ? (
+                  <Link href={`/chefs/${bid.profiles.id}`} className="text-blue-600 hover:text-blue-700 hover:underline">
+                    {bid.profiles.full_name || 'آشپز ناشناس'}
+                  </Link>
+                ) : (
+                  bid.profiles?.full_name || 'آشپز ناشناس'
+                )}
             </h4>
             {bid.profiles?.avatar_url && (
-                <img src={bid.profiles.avatar_url} alt={bid.profiles.full_name || 'avatar'} className="w-10 h-10 rounded-full object-cover inline-block ml-2"/>
+                 <Link href={`/chefs/${bid.profiles.id}`} passHref legacyBehavior>
+                    <a>
+                        <img src={bid.profiles.avatar_url} alt={bid.profiles.full_name || 'avatar'} className="w-10 h-10 rounded-full object-cover inline-block ml-2 cursor-pointer"/>
+                    </a>
+                 </Link>
             )}
             {bid.profiles && (bid.profiles.average_rating !== null || bid.profiles.total_reviews !== null) && (
                  <div className="inline-block ml-2 mt-1 sm:mt-0">
