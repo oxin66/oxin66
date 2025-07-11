@@ -51,8 +51,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         *,
         profiles!bids_chef_id_fkey (
           full_name,
-          avatar_url
-          // Add other chef profile fields if needed, e.g., average_rating
+          avatar_url,
+          average_rating,
+          total_reviews
         )
       `)
       .eq('order_id', orderId)

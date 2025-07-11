@@ -4,8 +4,11 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import BidList from '@/components/bids/BidList';
-import OrderListItem, { OrderItem as OrderDetailItem } from '@/components/orders/OrderListItem'; // Re-use for displaying order details
-import PaymentButton from '@/components/payment/PaymentButton'; // Import the new PaymentButton
+import OrderListItem, { OrderItem as OrderDetailItem } from '@/components/orders/OrderListItem';
+import PaymentButton from '@/components/payment/PaymentButton';
+import SubmitReviewForm from '@/components/reviews/SubmitReviewForm';
+import ReviewListItem, { ReviewItemData } from '@/components/reviews/ReviewListItem';
+import CompleteOrderButton from '@/components/orders/CompleteOrderButton'; // Import CompleteOrderButton
 
 interface UserOrderDetailsPageProps {
   params: { orderId: string };
@@ -20,7 +23,8 @@ async function getOrderDetails(orderId: string, supabaseClient: any, currentUser
         bids!orders_accepted_bid_id_fkey (
             *,
             profiles!bids_chef_id_fkey (full_name, avatar_url)
-        )
+        ),
+        reviews ( * ) -- Fetch the review for this order, if any. Assumes one-to-one on order_id
     `)
     .eq('id', orderId)
     .eq('user_id', currentUserId) // Ensure the user owns this order
@@ -30,7 +34,14 @@ async function getOrderDetails(orderId: string, supabaseClient: any, currentUser
     console.error('Error fetching order details for user:', error.message);
     return null;
   }
-  return data as OrderDetailItem; // Cast needed due to complex select
+  // Supabase returns array for one-to-many, even if it's one-to-one via unique constraint.
+  // Normalize `reviews` to be an object or null.
+  const orderData = data as any;
+  if (orderData && orderData.reviews && Array.isArray(orderData.reviews)) {
+    orderData.reviews = orderData.reviews[0] || null;
+  }
+
+  return orderData as (OrderDetailItem & { reviews: ReviewItemData | null });
 }
 
 
@@ -153,6 +164,44 @@ export default async function UserOrderDetailsPage({ params }: UserOrderDetailsP
             </div>
         </div>
       )}
+
+      {/* Complete Order Button - Show if order is in a state that can be completed by user, and not yet completed */}
+      {order.status !== 'completed' && order.status !== 'pending_bids' && order.status !== 'cancelled_by_user' && order.status !== 'cancelled_by_chef' && order.assigned_chef_id && userProfile && (
+        <div className="my-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg text-center">
+            <CompleteOrderButton
+                orderId={order.id}
+                currentStatus={order.status}
+                onOrderCompleted={() => {
+                    // Redirect to refresh the page and show the review form (or submitted review)
+                    redirect(`/dashboard/user/orders/${order.id}?order_completed=true`);
+                }}
+            />
+        </div>
+      )}
+
+
+      {/* Review Section */}
+      {order.status === 'completed' && userProfile && order.assigned_chef_id && (
+        <div className="mt-8 pt-6 border-t">
+          <h2 className="text-2xl font-semibold text-gray-700 mb-4">ثبت یا مشاهده بازخورد</h2>
+          {order.reviews ? (
+            <div>
+              <h3 className="text-lg font-medium text-gray-800 mb-2">بازخورد ثبت شده شما:</h3>
+              <ReviewListItem review={{...order.reviews, userProfile: {full_name: userProfile.fullName, avatar_url: userProfile.avatarUrl}}} />
+            </div>
+          ) : (
+            <SubmitReviewForm
+              orderId={order.id}
+              chefName={order.bids?.profiles?.full_name} // Name of the chef from the accepted bid
+              onSubmitSuccess={(reviewData) => {
+                console.log('Review submitted successfully on page:', reviewData);
+                redirect(`/dashboard/user/orders/${order.id}?review_success=true`);
+              }}
+            />
+          )}
+        </div>
+      )}
+      {/* TODO: Add a query param listener for review_success=true or order_completed=true to show a success message */}
 
     </div>
   );

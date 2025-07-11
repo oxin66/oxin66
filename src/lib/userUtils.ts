@@ -8,9 +8,11 @@ export interface UserProfile {
   fullName: string | null;
   avatarUrl?: string | null;
   verification_status?: 'pending_review' | 'approved' | 'rejected' | 'needs_more_info' | string | null;
-  bio?: string | null;             // Added for all users
-  kitchen_name?: string | null;    // Added for chefs
-  specialties?: string[] | null;   // Added for chefs
+  bio?: string | null;
+  kitchen_name?: string | null;
+  specialties?: string[] | null;
+  average_rating?: number | null;   // Added for chefs
+  total_reviews?: number | null;    // Added for chefs
   // Add other profile fields as needed
 }
 
@@ -35,7 +37,7 @@ export async function getCurrentUserProfile(cookieStoreAccessor: () => ReadonlyR
   // Now fetch the profile information from 'profiles' table
   const { data: profileData, error: profileError } = await supabase
     .from('profiles')
-    .select('role, full_name, avatar_url, verification_status, bio, kitchen_name, specialties') // Added new fields
+    .select('role, full_name, avatar_url, verification_status, bio, kitchen_name, specialties, average_rating, total_reviews') // Added rating fields
     .eq('id', user.id)
     .single(); // Assuming one profile per user
 
@@ -61,9 +63,11 @@ export async function getCurrentUserProfile(cookieStoreAccessor: () => ReadonlyR
     fullName: profileData?.full_name || null,
     avatarUrl: profileData?.avatar_url || null,
     verification_status: profileData?.verification_status || null,
-    bio: profileData?.bio || null,                         // Added
-    kitchen_name: profileData?.kitchen_name || null,       // Added
-    specialties: profileData?.specialties || null,         // Added
+    bio: profileData?.bio || null,
+    kitchen_name: profileData?.kitchen_name || null,
+    specialties: profileData?.specialties || null,
+    average_rating: profileData?.average_rating ? parseFloat(String(profileData.average_rating)) : null, // Ensure number
+    total_reviews: profileData?.total_reviews || null,     // Added
   };
 }
 

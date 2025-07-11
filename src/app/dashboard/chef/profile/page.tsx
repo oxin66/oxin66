@@ -1,10 +1,12 @@
 // This page is protected by ChefDashboardLayout and middleware
 import ProfileEditForm from '@/components/profile/ProfileEditForm';
-import { UserProfile } from '@/lib/userUtils'; // Ensure this fetches all needed fields including chef specific ones
+import { UserProfile } from '@/lib/userUtils';
 import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import AverageRatingDisplay from '@/components/reviews/AverageRatingDisplay'; // Import
+import ReviewList from '@/components/reviews/ReviewList'; // Import
 
 export default async function ChefProfileEditPage() {
   const cookieStore = cookies();
@@ -68,6 +70,21 @@ export default async function ChefProfileEditPage() {
         )}
 
       <ProfileEditForm initialProfileData={userProfile} />
+
+      {/* Display Chef's Reviews and Average Rating */}
+      {userProfile.role === 'chef' && (
+        <div className="mt-10 pt-8 border-t">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-3">بازخوردها و امتیازات شما</h2>
+          <div className="mb-6 bg-gray-50 p-4 rounded-md">
+            <AverageRatingDisplay
+              averageRating={userProfile.average_rating}
+              totalReviews={userProfile.total_reviews}
+              size="medium"
+            />
+          </div>
+          <ReviewList chefId={userProfile.id} />
+        </div>
+      )}
 
       <div className="mt-8">
         <Link href="/dashboard/chef" className="text-sm text-blue-600 hover:underline">

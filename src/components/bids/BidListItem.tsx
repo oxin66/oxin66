@@ -1,10 +1,12 @@
 import React from 'react';
+import AverageRatingDisplay from '@/components/reviews/AverageRatingDisplay'; // Import
 
 // Align with the bid data structure returned by /api/orders/[orderId]/bids GET endpoint
 export interface BidChefProfile {
   full_name: string | null;
   avatar_url?: string | null;
-  // Add other chef profile data like average_rating if available
+  average_rating?: number | null;
+  total_reviews?: number | null;
 }
 
 export interface BidItem {
@@ -16,7 +18,7 @@ export interface BidItem {
   chef_notes?: string | null;
   status: 'pending' | 'accepted' | 'rejected' | 'withdrawn_by_chef' | 'expired';
   created_at: string;
-  profiles: BidChefProfile | null; // Chef's profile info
+  profiles: BidChefProfile | null;
 }
 
 interface BidListItemProps {
@@ -64,8 +66,15 @@ const BidListItem: React.FC<BidListItemProps> = ({
             {bid.profiles?.avatar_url && (
                 <img src={bid.profiles.avatar_url} alt={bid.profiles.full_name || 'avatar'} className="w-10 h-10 rounded-full object-cover inline-block ml-2"/>
             )}
-            {/* Future: Display chef's rating here */}
-            {/* <span className="text-sm text-yellow-500">★★★★☆ (۴.۵)</span> */}
+            {bid.profiles && (bid.profiles.average_rating !== null || bid.profiles.total_reviews !== null) && (
+                 <div className="inline-block ml-2 mt-1 sm:mt-0">
+                    <AverageRatingDisplay
+                        averageRating={bid.profiles.average_rating}
+                        totalReviews={bid.profiles.total_reviews}
+                        size="small"
+                    />
+                 </div>
+            )}
         </div>
         <span className={`px-3 py-1 text-xs font-semibold rounded-full text-white ${
           bid.status === 'pending' ? 'bg-blue-500' :
