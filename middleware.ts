@@ -94,11 +94,10 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/?error=unauthorized_dashboard', request.url));
       }
     } else if (pathname.startsWith('/dashboard/admin')) {
-        // Example for a future admin dashboard
-        if (userRole !== 'admin') {
-            console.log(`Middleware: Unauthorized access to /dashboard/admin for role: ${userRole}`);
-            return NextResponse.redirect(new URL('/?error=unauthorized_admin_dashboard', request.url));
-        }
+      if (userRole !== 'admin') {
+        console.log(`Middleware: Unauthorized access to /dashboard/admin for role: ${userRole}. Redirecting.`);
+        return NextResponse.redirect(new URL('/?error=admin_only_access_denied', request.url)); // Redirect to home with a specific error
+      }
     }
 
     // If user is logged in and tries to access /login or /signup, redirect them to their dashboard or home

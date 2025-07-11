@@ -112,7 +112,8 @@ export default async function ChefOrderDetailsPage({ params }: ChefOrderDetailsP
   };
 
   // Determine if the chef can currently submit a bid
-  const canSubmitBid = order.status === 'pending_bids' && (!order.my_bid || order.my_bid.status === 'withdrawn_by_chef' || order.my_bid.status === 'rejected');
+  const isChefApproved = userProfile?.verification_status === 'approved';
+  const canSubmitBid = isChefApproved && order.status === 'pending_bids' && (!order.my_bid || order.my_bid.status === 'withdrawn_by_chef' || order.my_bid.status === 'rejected');
   const hasActivePendingBid = order.my_bid && order.my_bid.status === 'pending';
   const hasAcceptedBid = order.my_bid && order.my_bid.status === 'accepted';
 
@@ -202,10 +203,17 @@ export default async function ChefOrderDetailsPage({ params }: ChefOrderDetailsP
                 // existingBid={order.my_bid?.status === 'withdrawn_by_chef' ? order.my_bid : undefined}
               />
             )}
-            {!canSubmitBid && !hasActivePendingBid && !hasAcceptedBid && order.status === 'pending_bids' && (
+            {/* Show message if chef is not approved but order is biddable */}
+            {!isChefApproved && order.status === 'pending_bids' && (
+                 <div className="bg-orange-50 border-l-4 border-orange-500 text-orange-700 p-4 rounded-md mb-6">
+                    <p className="font-bold">عدم امکان ارسال پیشنهاد</p>
+                    <p>حساب کاربری آشپزی شما هنوز توسط ادمین تأیید نشده است. پس از تأیید، قادر به ارسال پیشنهاد برای این سفارش خواهید بود.</p>
+                 </div>
+            )}
+            {!canSubmitBid && !hasActivePendingBid && !hasAcceptedBid && order.status === 'pending_bids' && isChefApproved && (
                  <div className="bg-yellow-50 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-md mb-6">
                     <p className="font-bold">توجه</p>
-                    <p>شما قبلاً برای این سفارش پیشنهادی ارسال کرده‌اید که یا پذیرفته شده یا وضعیت دیگری دارد. در حال حاضر نمی‌توانید پیشنهاد جدیدی ثبت کنید.</p>
+                    <p>شما قبلاً برای این سفارش پیشنهادی ارسال کرده‌اید که یا پذیرفته شده یا وضعیت دیگری دارد. در حال حاضر نمی‌توانید پیشنهاد جدیدی ثبت کنید (مگر اینکه پیشنهاد قبلی پس گرفته یا رد شده باشد).</p>
                  </div>
             )}
           </>

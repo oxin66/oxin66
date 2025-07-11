@@ -41,6 +41,31 @@ export default async function ChefDashboardLayout({
       </header>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Verification Status Message for Chef */}
+        {userProfile.role === 'chef' && userProfile.verification_status !== 'approved' && (
+          <div
+            className={`mb-6 p-4 rounded-md text-sm ${
+              userProfile.verification_status === 'pending_review' ? 'bg-yellow-50 border-yellow-400 text-yellow-700' :
+              userProfile.verification_status === 'rejected' ? 'bg-red-50 border-red-400 text-red-700' :
+              userProfile.verification_status === 'needs_more_info' ? 'bg-blue-50 border-blue-400 text-blue-700' :
+              'bg-gray-50 border-gray-400 text-gray-700' // Default for other statuses
+            } border-r-4`}
+            role="alert"
+          >
+            <p className="font-bold">وضعیت حساب آشپزی شما:</p>
+            {userProfile.verification_status === 'pending_review' && (
+              <p>حساب شما در حال حاضر "در انتظار بررسی" توسط تیم مدیریت است. پس از تأیید، قادر به ارسال پیشنهاد برای سفارشات خواهید بود.</p>
+            )}
+            {userProfile.verification_status === 'rejected' && (
+              <p>متأسفانه، درخواست شما برای فعالیت به عنوان آشپز "رد شده" است. برای اطلاعات بیشتر با پشتیبانی تماس بگیرید.</p>
+            )}
+            {userProfile.verification_status === 'needs_more_info' && (
+              <p>برای تکمیل فرآیند تأیید حساب آشپزی شما، "نیاز به اطلاعات بیشتر" است. لطفاً بخش پیام‌ها یا ایمیل خود را برای دستورالعمل‌های بعدی بررسی کنید یا با پشتیبانی تماس بگیرید.</p>
+            )}
+            {/* Add more messages for other potential statuses */}
+          </div>
+        )}
+
         <div className="lg:flex lg:space-x-6 lg:space-x-reverse">
           <aside className="lg:w-1/4 mb-6 lg:mb-0">
             <div className="bg-white p-6 rounded-lg shadow">

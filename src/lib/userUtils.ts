@@ -7,6 +7,7 @@ export interface UserProfile {
   role: string | null;
   fullName: string | null;
   avatarUrl?: string | null;
+  verification_status?: 'pending_review' | 'approved' | 'rejected' | 'needs_more_info' | string | null; // Added
   // Add other profile fields as needed
 }
 
@@ -31,7 +32,7 @@ export async function getCurrentUserProfile(cookieStoreAccessor: () => ReadonlyR
   // Now fetch the profile information from 'profiles' table
   const { data: profileData, error: profileError } = await supabase
     .from('profiles')
-    .select('role, full_name, avatar_url') // Select desired fields
+    .select('role, full_name, avatar_url, verification_status') // Added verification_status
     .eq('id', user.id)
     .single(); // Assuming one profile per user
 
@@ -56,6 +57,7 @@ export async function getCurrentUserProfile(cookieStoreAccessor: () => ReadonlyR
     role: profileData?.role || null,
     fullName: profileData?.full_name || null,
     avatarUrl: profileData?.avatar_url || null,
+    verification_status: profileData?.verification_status || null, // Added
   };
 }
 

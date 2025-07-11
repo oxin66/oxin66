@@ -95,6 +95,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ message: 'فقط آشپزها می‌توانند پیشنهاد ثبت کنند.' }, { status: 403 });
   }
 
+  // Check if the chef is verified
+  if (userProfile.verification_status !== 'approved') {
+    return NextResponse.json({
+      message: 'حساب کاربری آشپزی شما هنوز توسط ادمین تأیید نشده است. پس از تأیید، قادر به ارسال پیشنهاد خواهید بود.',
+      reason: 'chef_not_verified'
+    }, { status: 403 });
+  }
+
   let validatedBidData: TBidCreationRequest;
   try {
     const body = await request.json();
