@@ -8,6 +8,7 @@ export default function SignupForm() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState<'user' | 'chef'>('user'); // New state for role
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -36,6 +37,43 @@ export default function SignupForm() {
     // Reset form or redirect user after success
     // setFullName(''); setEmail(''); setPhoneNumber(''); setPassword(''); setConfirmPassword('');
     setIsLoading(false);
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    if (password !== confirmPassword) {
+      setError('رمزهای عبور یکسان نیستند.');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password, fullName, phoneNumber, role }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || 'خطایی در هنگام ثبت نام رخ داد.');
+      } else {
+        setSuccessMessage(data.message || 'ثبت نام شما با موفقیت انجام شد. لطفاً ایمیل خود را برای فعال سازی حساب کاربری بررسی کنید (در صورت فعال بودن تایید ایمیل).');
+        // Reset form or redirect user after success can be handled here
+        // For example, clear the form:
+        // setFullName(''); setEmail(''); setPhoneNumber(''); setPassword(''); setConfirmPassword(''); setRole('user');
+      }
+    } catch (err) {
+      setError('یک خطای پیش بینی نشده رخ داد. لطفاً دوباره تلاش کنید.');
+      console.error('Signup error:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (successMessage) {
@@ -58,6 +96,44 @@ export default function SignupForm() {
           <p>{error}</p>
         </div>
       )}
+
+      {/* Role Selection */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 text-right mb-2">
+          نوع حساب کاربری:
+        </label>
+        <div className="flex items-center justify-end space-x-4 space-x-reverse">
+          <div className="flex items-center">
+            <input
+              id="role-user"
+              name="role"
+              type="radio"
+              value="user"
+              checked={role === 'user'}
+              onChange={() => setRole('user')}
+              className="focus:ring-green-500 h-4 w-4 text-green-600 border-gray-300 ml-2"
+            />
+            <label htmlFor="role-user" className="text-sm font-medium text-gray-700">
+              کاربر عادی (سفارش دهنده غذا)
+            </label>
+          </div>
+          <div className="flex items-center">
+            <input
+              id="role-chef"
+              name="role"
+              type="radio"
+              value="chef"
+              checked={role === 'chef'}
+              onChange={() => setRole('chef')}
+              className="focus:ring-green-500 h-4 w-4 text-green-600 border-gray-300 ml-2"
+            />
+            <label htmlFor="role-chef" className="text-sm font-medium text-gray-700">
+              آشپز (ارائه دهنده غذا)
+            </label>
+          </div>
+        </div>
+      </div>
+
       <div>
         <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 text-right mb-1">
           نام و نام خانوادگی

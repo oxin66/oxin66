@@ -7,17 +7,49 @@ export default function LoginForm() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // const router = useRouter(); // From 'next/navigation' for redirection
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
     setError(null);
-    // TODO: Implement actual login logic with Supabase
-    console.log('Login attempt with:', { identifier, password });
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    // Example error:
-    // setError('نام کاربری یا رمز عبور اشتباه است.');
+
+    // Supabase client for client-side operations
+    const supabase = createClient(); // From '@/lib/supabase/client'
+
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      email: identifier, // Assuming identifier is email for now.
+                        // If phone number login is enabled in Supabase, this might need adjustment
+                        // or use supabase.auth.signInWithOtp for phone.
+      password,
+    });
+
+    if (signInError) {
+      console.error('Supabase Sign In Error:', signInError);
+      if (signInError.message.includes('Invalid login credentials')) {
+        setError('ایمیل یا رمز عبور نامعتبر است.');
+      } else {
+        setError(signInError.message || 'خطایی در هنگام ورود رخ داد.');
+      }
+      setIsLoading(false);
+      return;
+    }
+
+    if (data.user) {
+      // Login successful
+      // console.log('Login successful, user:', data.user);
+      // Optionally, fetch profile data here to get the role if needed immediately on client
+      // Or rely on middleware/layout to handle redirection based on role fetched server-side.
+
+      // Forcing a page reload to ensure middleware and server components pick up the new session
+      // This is a common pattern with Supabase SSR auth to refresh everything.
+      window.location.href = '/'; // Redirect to homepage, middleware should then route to correct dashboard
+      // router.push('/'); // Alternative using Next.js router, but window.location.reload() or href might be more robust for session update
+      // router.refresh(); // Another option
+    } else {
+      setError('ورود انجام نشد. لطفاً دوباره تلاش کنید.');
+    }
+
     setIsLoading(false);
   };
 
