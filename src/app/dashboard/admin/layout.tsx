@@ -69,6 +69,12 @@ export default async function AdminDashboardLayout({
                   href="/dashboard/admin/orders"
                   className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-slate-100 hover:text-slate-900 rounded-md transition-colors"
                 >
+                  مدیریت سفارشات
+                </Link>
+                {/* <Link
+                  href="/dashboard/admin/reviews"
+                  className="block px-3 py-2.5 text-sm text-gray-700 hover:bg-slate-100 hover:text-slate-900 rounded-md transition-colors"
+                >
                   مدیریت سفارشات (به زودی)
                 </Link> */}
                 {/* Add more admin links as needed */}

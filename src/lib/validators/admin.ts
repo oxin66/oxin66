@@ -32,3 +32,11 @@ export const UserUpdateByAdminSchema = z.object({
 });
 
 export type TUserUpdateByAdminRequest = z.infer<typeof UserUpdateByAdminSchema>;
+
+// Validator for updating order status by admin
+export const OrderStatusUpdateByAdminSchema = z.object({
+  status: z.string().min(1, { message: "وضعیت سفارش نمی‌تواند خالی باشد." }), // Admin can set to any valid status string
+  admin_reason: z.string().max(500, "دلیل تغییر وضعیت نمی‌تواند بیشتر از ۵۰۰ کاراکتر باشد.").optional().nullable(),
+});
+
+export type TOrderStatusUpdateByAdminRequest = z.infer<typeof OrderStatusUpdateByAdminSchema>;
