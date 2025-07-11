@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import BidList from '@/components/bids/BidList';
 import OrderListItem, { OrderItem as OrderDetailItem } from '@/components/orders/OrderListItem'; // Re-use for displaying order details
+import PaymentButton from '@/components/payment/PaymentButton'; // Import the new PaymentButton
 
 interface UserOrderDetailsPageProps {
   params: { orderId: string };
@@ -132,7 +133,24 @@ export default async function UserOrderDetailsPage({ params }: UserOrderDetailsP
             <h2 className="text-xl font-semibold text-green-700 mb-3">آشپز انتخاب شده</h2>
             <p><strong>نام آشپز:</strong> {order.bids.profiles?.full_name || 'نامشخص'}</p>
             <p><strong>مبلغ توافقی:</strong> {Number(order.final_bid_amount || order.bids.bid_amount).toLocaleString('fa-IR')} تومان</p>
-            {/* Add link to chat with chef */}
+            <div className="mt-4 space-y-3">
+              <div>
+                <Link
+                    href={`/dashboard/chat`} // Ideally, this would be /dashboard/chat/[roomIdForThisOrder]
+                    className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
+                >
+                    گفتگو با آشپز
+                </Link>
+                <p className="text-xs text-gray-600 mt-1">برای هماهنگی جزئیات، با آشپز گفتگو کنید.</p>
+              </div>
+              <div>
+                <PaymentButton
+                    orderId={order.id}
+                    amount={Number(order.final_bid_amount || order.bids.bid_amount)}
+                    orderStatus={order.status}
+                />
+              </div>
+            </div>
         </div>
       )}
 

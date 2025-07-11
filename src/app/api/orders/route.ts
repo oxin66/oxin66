@@ -127,31 +127,51 @@ export async function GET(request: NextRequest) {
       )
     `);
 
-    // Filter based on user role
-    if (userProfile.role === 'chef' || userProfile.role === 'admin') {
-      // Chefs and Admins see orders pending bids by default, or based on status filter
-      const statusFilter = searchParams.get('status');
-      if (statusFilter) {
-        query = query.eq('status', statusFilter);
-      } else {
-        query = query.eq('status', 'pending_bids'); // Default for chefs
-      }
-      // Chefs should not see their own orders if they also have 'user' role capability in future
-      // query = query.neq('user_id', userProfile.id); // If a chef cannot bid on their own order requests
-    } else if (userProfile.role === 'user') {
-      // Users see their own orders
+    // Filter based on user role and viewMode
+    const viewMode = searchParams.get('viewMode');
+    const statusFilter = searchParams.get('status');
+
+    if (userProfile.role === 'user') {
+      // Users see their own created orders
       query = query.eq('user_id', userProfile.id);
-      const statusFilter = searchParams.get('status');
       if (statusFilter) {
         query = query.eq('status', statusFilter);
+      }
+    } else if (userProfile.role === 'chef' || userProfile.role === 'admin') {
+      if (viewMode === 'chef_active') {
+        // Chefs/Admins viewing chef's active/assigned orders
+        query = query.eq('assigned_chef_id', userProfile.id);
+        if (statusFilter) {
+          // statusFilter can be a comma-separated list like "in_preparation,ready_for_delivery"
+          const statuses = statusFilter.split(',').map(s => s.trim()).filter(s => s);
+          if (statuses.length > 0) {
+            query = query.in('status', statuses);
+          }
+        } else {
+          // Default active statuses for a chef if not specified
+          query = query.in('status', ['in_preparation', 'ready_for_delivery', 'out_for_delivery']);
+        }
+      } else {
+        // Default view for Chefs/Admins: orders pending bids (for bidding market)
+        // Admins might have other views too, handled by specific admin APIs or more params
+        if (statusFilter) {
+          query = query.eq('status', statusFilter);
+        } else {
+          query = query.eq('status', 'pending_bids');
+        }
+        // For 'pending_bids', a chef should not see their own order requests if they also act as a user.
+        // query = query.neq('user_id', userProfile.id);
       }
     } else {
-      // Should not happen if roles are correctly managed
       return NextResponse.json({ message: 'نقش کاربری نامعتبر برای مشاهده سفارشات.' }, { status: 403 });
     }
 
-    // Ordering (e.g., newest first)
-    query = query.order('created_at', { ascending: false });
+    // Ordering
+    if (viewMode === 'chef_active') {
+        query = query.order('updated_at', { ascending: false }); // Show most recently updated active orders first
+    } else {
+        query = query.order('created_at', { ascending: false }); // Default: newest created orders first
+    }
 
     // Pagination (example, can be extended)
     const page = parseInt(searchParams.get('page') || '1', 10);

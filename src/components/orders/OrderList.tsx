@@ -6,9 +6,10 @@ import { createClient } from '@/lib/supabase/client'; // For potential client-si
 
 interface OrderListProps {
   userRole: 'user' | 'chef' | 'admin' | null;
-  initialOrders?: OrderItem[]; // For SSR or initial data pass-through
-  statusFilter?: string; // e.g., 'pending_bids', 'completed'
-  onOrderSelect?: (orderId: string) => void; // Callback when an order is selected
+  initialOrders?: OrderItem[];
+  statusFilter?: string;
+  onOrderSelect?: (orderId: string) => void;
+  additionalApiParams?: Record<string, string>; // For extra query params like viewMode
 }
 
 interface PaginationInfo {
@@ -34,12 +35,23 @@ const OrderList: React.FC<OrderListProps> = ({ userRole, initialOrders, statusFi
     // setIsLoading(true); // Already handled or handled differently for realtime
 
     try {
-      let url = `/api/orders?page=${page}&limit=${currentLimit}`;
+      const urlParams = new URLSearchParams({
+        page: String(page),
+        limit: String(currentLimit),
+      });
       if (statusFilter) {
-        url += `&status=${statusFilter}`;
+        urlParams.append('status', statusFilter);
+      }
+      // Use additionalApiParams here
+      if (additionalApiParams) {
+        for (const key in additionalApiParams) {
+          if (Object.prototype.hasOwnProperty.call(additionalApiParams, key) && additionalApiParams[key] !== undefined) {
+            urlParams.append(key, additionalApiParams[key]);
+          }
+        }
       }
 
-      const response = await fetch(url);
+      const response = await fetch(`/api/orders?${urlParams.toString()}`);
       if (!response.ok) {
         const errData = await response.json();
         throw new Error(errData.message || 'خطا در دریافت سفارشات');
