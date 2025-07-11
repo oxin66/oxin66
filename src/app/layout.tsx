@@ -44,13 +44,21 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+import { ThemeProvider } from "@/components/theme-provider"; // Assuming you have this
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { NotificationProvider } from '@/contexts/NotificationContext';
+
+export default async function RootLayout({ // Make it async
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const supabase = createServerComponentClient({ cookies });
+  const { data: { session } } = await supabase.auth.getSession();
+
   return (
-    <html lang="fa" dir="rtl">
+    <html lang="fa" dir="rtl" suppressHydrationWarning> {/* Added suppressHydrationWarning for next-themes */}
       {/*
         To use next/font, add the font variable to the body className:
         <body className={`\${iranYekan.variable} \${shabnam.variable} font-sans`}>
@@ -59,12 +67,26 @@ export default function RootLayout({
           sans: ['var(--font-iranyekan)', 'var(--font-shabnam)', 'system-ui', ...],
         }
       */}
-      <body className="font-sans"> {/* Use 'font-sans' from Tailwind config which should now point to Farsi fonts */}
-        {/* Placeholder for a global Navbar component */}
-        {/* <Navbar /> */}
-        <main>{children}</main>
-        {/* Placeholder for a global Footer component */}
-        {/* <Footer /> */}
+      <body className="font-sans bg-background text-foreground"> {/* Use 'font-sans' from Tailwind config, added bg/text */}
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+        >
+          <NotificationProvider session={session}>
+            {/* You would typically have a main layout structure here */}
+            {/* e.g. <Header /> <main className="flex-grow">{children}</main> <Footer /> */}
+            {/* For now, just wrapping children directly */}
+            <main className="min-h-screen flex flex-col">
+                {/* A global header could go here, consuming NotificationContext */}
+                <div className="flex-grow">
+                    {children}
+                </div>
+                {/* A global footer could go here */}
+            </main>
+          </NotificationProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

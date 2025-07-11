@@ -50,7 +50,8 @@ async function getOrderForChef(orderId: string, supabaseClient: any, currentChef
             estimated_delivery_time_minutes,
             chef_notes,
             status
-        )
+        ),
+        chat_rooms!order_id (id) -- Join to get chat room ID
     `)
     .eq('id', orderId)
     // .eq('status', 'pending_bids') // Chef should only be able to bid on pending_bids orders
@@ -70,8 +71,11 @@ async function getOrderForChef(orderId: string, supabaseClient: any, currentChef
   } else if (orderData) {
     orderData.my_bid = null;
   }
+  if (orderData && orderData.chat_rooms && Array.isArray(orderData.chat_rooms)) {
+    orderData.chat_rooms = orderData.chat_rooms[0] || null;
+  }
 
-  return orderData as OrderForChef;
+  return orderData as (OrderForChef & { chat_rooms: { id: string } | null });
 }
 
 export default async function ChefOrderDetailsPage({ params }: ChefOrderDetailsPageProps) {
@@ -87,7 +91,7 @@ export default async function ChefOrderDetailsPage({ params }: ChefOrderDetailsP
     redirect('/?error=unauthorized_action');
   }
 
-  const order = await getOrderForChef(orderId, supabase, userProfile.id);
+  const order = await getOrderForChef(orderId, supabase, userProfile.id) as (OrderForChef & { chat_rooms: { id: string } | null });
 
   if (!order) {
     return (
@@ -191,7 +195,16 @@ export default async function ChefOrderDetailsPage({ params }: ChefOrderDetailsP
                  <div className="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded-md mb-6">
                     <p className="font-bold">تبریک! پیشنهاد شما برای این سفارش پذیرفته شده است.</p>
                     <p>مبلغ: {Number(order.my_bid.bid_amount).toLocaleString('fa-IR')} تومان</p>
-                    {/* Link to chat or order management */}
+                    {(order.chat_rooms as {id: string} | null)?.id && (
+                        <div className="mt-3">
+                            <Link
+                                href={`/dashboard/chat/${(order.chat_rooms as {id: string}).id}`}
+                                className="inline-block bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-3 rounded-lg text-sm"
+                            >
+                                مشاهده گفتگو با کاربر
+                            </Link>
+                        </div>
+                    )}
                  </div>
             )}
             {canSubmitBid && (

@@ -41,6 +41,7 @@ export default async function ChefDashboardLayout({
               <p className="text-sm text-gray-700 hidden sm:block">
                 خوش آمدید، {userProfile.fullName || userProfile.email} (آشپز)
               </p>
+              <NotificationBell />
               <SignOutButton />
             </div>
           </div>

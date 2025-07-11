@@ -41,6 +41,8 @@ export default async function UserDashboardLayout({
               <p className="text-sm text-gray-700 hidden sm:block">
                 خوش آمدید، {userProfile.fullName || userProfile.email}
               </p>
+              {/* Notification Bell Added Here */}
+              <NotificationBell />
               <SignOutButton />
             </div>
           </div>

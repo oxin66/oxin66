@@ -24,7 +24,8 @@ async function getOrderDetails(orderId: string, supabaseClient: any, currentUser
             *,
             profiles!bids_chef_id_fkey (full_name, avatar_url)
         ),
-        reviews ( * ) -- Fetch the review for this order, if any. Assumes one-to-one on order_id
+        reviews ( * ),
+        chat_rooms!order_id (id) -- Join to get chat room ID
     `)
     .eq('id', orderId)
     .eq('user_id', currentUserId) // Ensure the user owns this order
@@ -35,13 +36,16 @@ async function getOrderDetails(orderId: string, supabaseClient: any, currentUser
     return null;
   }
   // Supabase returns array for one-to-many, even if it's one-to-one via unique constraint.
-  // Normalize `reviews` to be an object or null.
+  // Normalize `reviews` and `chat_rooms` to be an object or null.
   const orderData = data as any;
   if (orderData && orderData.reviews && Array.isArray(orderData.reviews)) {
     orderData.reviews = orderData.reviews[0] || null;
   }
+  if (orderData && orderData.chat_rooms && Array.isArray(orderData.chat_rooms)) {
+    orderData.chat_rooms = orderData.chat_rooms[0] || null;
+  }
 
-  return orderData as (OrderDetailItem & { reviews: ReviewItemData | null });
+  return orderData as (OrderDetailItem & { reviews: ReviewItemData | null; chat_rooms: { id: string } | null });
 }
 
 
@@ -58,7 +62,8 @@ export default async function UserOrderDetailsPage({ params }: UserOrderDetailsP
     redirect('/?error=unauthorized_action');
   }
 
-  const order = await getOrderDetails(orderId, supabase, userProfile.id);
+  const order = await getOrderDetails(orderId, supabase, userProfile.id) as (OrderDetailItem & { reviews: ReviewItemData | null; chat_rooms: { id: string } | null });
+
 
   if (!order) {
     return (
@@ -147,7 +152,7 @@ export default async function UserOrderDetailsPage({ params }: UserOrderDetailsP
             <div className="mt-4 space-y-3">
               <div>
                 <Link
-                    href={`/dashboard/chat`} // Ideally, this would be /dashboard/chat/[roomIdForThisOrder]
+                    href={order.chat_rooms?.id ? `/dashboard/chat/${order.chat_rooms.id}` : `/dashboard/chat?orderId=${order.id}`}
                     className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
                 >
                     گفتگو با آشپز

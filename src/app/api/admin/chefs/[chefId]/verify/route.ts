@@ -86,8 +86,19 @@ export async function PATCH(request: NextRequest, { params }: VerifyChefRoutePar
         return NextResponse.json({ message: 'به‌روزرسانی انجام نشد، پروفایل آشپز یافت نشد پس از تلاش برای آپدیت.' }, { status: 404 });
     }
 
-    // TODO: Send notification to the chef about their verification status change.
-    // (e.g., via email, Supabase Realtime notification, etc.)
+    // Send notification to the chef about their verification status change.
+    const notificationPayload = {
+        user_id: updatedChef.id, // chefId
+        type: 'chef_verification_update',
+        title: 'وضعیت تأیید حساب آشپزی شما به‌روز شد',
+        message: `وضعیت تأیید حساب آشپزی شما توسط مدیریت به '${verification_status}' تغییر یافت. ${admin_notes ? `یادداشت ادمین: ${admin_notes}` : ''}`,
+        link_to: '/dashboard/chef/profile', // Link to their profile where they might see more details or status
+        metadata: { chefId: updatedChef.id, newStatus: verification_status, adminNotes: admin_notes }
+    };
+    const { error: notificationError } = await supabase.from('notifications').insert(notificationPayload);
+    if (notificationError) {
+        console.error(`Failed to create chef_verification_update notification for chef ${updatedChef.id}:`, notificationError.message);
+    }
 
     return NextResponse.json({
       message: `وضعیت تأیید آشپز با موفقیت به '${verification_status}' تغییر یافت.`,

@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import OrderListItem, { OrderItem } from './OrderListItem';
-import { createClient } from '@/lib/supabase/client'; // For potential client-side actions if any
+import { createClient } from '@/lib/supabase/client';
+import SkeletonCard from '@/components/ui/SkeletonCard'; // Import SkeletonCard
 
 interface OrderListProps {
   userRole: 'user' | 'chef' | 'admin' | null;
@@ -151,16 +152,16 @@ const OrderList: React.FC<OrderListProps> = ({ userRole, initialOrders, statusFi
   };
 
 
-  if (isLoading) {
+  if (isLoading && orders.length === 0) { // Show skeletons only on initial load when no orders are yet displayed
     return (
-        <div className="text-center py-10">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="mt-3 text-gray-600">در حال بارگذاری سفارشات...</p>
+        <div className="space-y-4">
+            {[...Array(3)].map((_, i) => <SkeletonCard key={i} rows={2} />)}
+            {/* Display 3 skeleton cards, each with 2 text lines */}
         </div>
     );
   }
 
-  if (error) {
+  if (error && orders.length === 0) { // Show error only if there are no orders to display (even stale ones)
     return (
       <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md text-center" role="alert">
         <p className="font-bold">خطا</p>

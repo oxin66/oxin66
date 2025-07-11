@@ -179,7 +179,29 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         return NextResponse.json({ message: 'پیشنهاد ایجاد شد اما اطلاعات آن بازگردانده نشد.' }, { status: 500 });
     }
 
-    // TODO: Emit a WebSocket event to the order owner about the new bid
+    // TODO: Emit a WebSocket event to the order owner about the new bid (Supabase Realtime will handle this via table subscription)
+
+    // Create notification for the order owner
+    if (orderData.user_id) {
+      const notificationPayload = {
+        user_id: orderData.user_id,
+        type: 'new_bid',
+        title: `پیشنهاد جدید برای سفارش شما #${orderId.substring(0, 8)}`,
+        message: `آشپز "${newBid.profiles?.full_name || 'ناشناس'}" برای سفارش شما پیشنهادی ارسال کرده است.`,
+        link_to: `/dashboard/user/orders/${orderId}`,
+        metadata: {
+          orderId: orderId,
+          bidId: newBid.id,
+          chefId: newBid.chef_id,
+          chefName: newBid.profiles?.full_name
+        }
+      };
+      const { error: notificationError } = await supabase.from('notifications').insert(notificationPayload);
+      if (notificationError) {
+        console.error("Failed to create new_bid notification:", notificationError.message);
+        // Non-critical, so don't fail the whole request
+      }
+    }
 
     return NextResponse.json({
       message: 'پیشنهاد شما با موفقیت ثبت شد.',

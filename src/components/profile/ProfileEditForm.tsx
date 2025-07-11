@@ -2,17 +2,18 @@
 
 import React, { useState, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { UserProfile } from '@/lib/userUtils'; // Assuming this type includes all editable fields
+import { UserProfile } from '@/lib/userUtils';
 import { ProfileUpdateSchema, TProfileUpdateRequest } from '@/lib/validators/profile';
 import { ZodError } from 'zod';
-import AvatarUpload from './AvatarUpload'; // Import the AvatarUpload component
+import AvatarUpload from './AvatarUpload';
+import AlertMessage from '@/components/ui/AlertMessage'; // Import AlertMessage
 
 interface ProfileEditFormProps {
-  initialProfileData: UserProfile; // Fetched server-side and passed to the form
+  initialProfileData: UserProfile;
 }
 
 const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ initialProfileData }) => {
-  const router = useRouter();
+  const router = useRouter(); // Not used currently, can be removed if not needed for redirection
   const [formData, setFormData] = useState<Partial<TProfileUpdateRequest>>({
     full_name: initialProfileData.fullName || '',
     phone_number: initialProfileData.phone_number || '',
@@ -132,16 +133,10 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ initialProfileData })
   return (
     <form onSubmit={handleSubmit} className="space-y-6" dir="rtl">
       {error && (
-        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert">
-          <p className="font-bold">خطا</p>
-          <p>{error}</p>
-        </div>
+        <AlertMessage type="error" title="خطا در به‌روزرسانی" message={error} onClose={() => setError(null)} className="mb-4" />
       )}
       {successMessage && (
-        <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-md" role="alert">
-          <p className="font-bold">موفقیت</p>
-          <p>{successMessage}</p>
-        </div>
+        <AlertMessage type="success" title="موفقیت" message={successMessage} onClose={() => setSuccessMessage(null)} className="mb-4" />
       )}
 
       <AvatarUpload

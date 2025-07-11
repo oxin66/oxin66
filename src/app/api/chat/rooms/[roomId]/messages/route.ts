@@ -172,6 +172,42 @@ export async function POST(request: NextRequest, { params }: RoomMessagesRoutePa
 
     // Realtime event for this new message will be picked up by clients subscribed to this room.
 
+    // Create notification for the other participant in the room
+    const { data: roomDetailsForNotification, error: roomDetailsError } = await supabase
+        .from('chat_rooms')
+        .select('user_id, chef_id, order_id')
+        .eq('id', roomId)
+        .single();
+
+    if (roomDetailsError || !roomDetailsForNotification) {
+        console.warn(`Could not fetch room details for notification on new message in room ${roomId}`);
+    } else {
+        const recipientId = roomDetailsForNotification.user_id === userProfile.id
+            ? roomDetailsForNotification.chef_id
+            : roomDetailsForNotification.user_id;
+
+        if (recipientId) {
+            const notificationPayload = {
+                user_id: recipientId,
+                type: 'new_chat_message',
+                title: `پیام جدید از ${userProfile.fullName || 'کاربر'}`,
+                message: `شما یک پیام جدید در گفتگوی مربوط به سفارش #${roomDetailsForNotification.order_id.substring(0,8)} دریافت کردید.`,
+                link_to: `/dashboard/chat/${roomId}`,
+                metadata: {
+                    orderId: roomDetailsForNotification.order_id,
+                    roomId: roomId,
+                    senderId: userProfile.id,
+                    senderName: userProfile.fullName,
+                    messagePreview: validatedMessageData.content.substring(0, 50) // Preview of the message
+                }
+            };
+            const { error: notificationError } = await supabase.from('notifications').insert(notificationPayload);
+            if (notificationError) {
+                console.error("Failed to create new_chat_message notification:", notificationError.message);
+            }
+        }
+    }
+
     return NextResponse.json({
       message: 'پیام شما با موفقیت ارسال شد.',
       data: newMessage,

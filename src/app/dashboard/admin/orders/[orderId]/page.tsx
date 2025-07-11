@@ -26,6 +26,7 @@ interface OrderDetailAdminView {
   dietary_restrictions?: string[] | null;
   delivery_location?: any | null;
   // ... other fields from your GET /api/admin/orders/[orderId] response
+  chat_rooms?: { id: string }[] | { id: string } | null; // Can be array or object based on join
 }
 
 async function fetchOrderDetailsForAdmin(orderId: string): Promise<OrderDetailAdminView | null> {
@@ -36,7 +37,12 @@ async function fetchOrderDetailsForAdmin(orderId: string): Promise<OrderDetailAd
       throw new Error(errData.message || 'خطا در دریافت جزئیات سفارش');
     }
     const data = await response.json();
-    return data.data as OrderDetailAdminView;
+    // Normalize chat_rooms to be a single object or null
+    const orderData = data.data as any;
+    if (orderData && orderData.chat_rooms && Array.isArray(orderData.chat_rooms)) {
+        orderData.chat_rooms = orderData.chat_rooms[0] || null;
+    }
+    return orderData as OrderDetailAdminView;
   } catch (error) {
     console.error("Failed to fetch order details for admin:", error);
     return null;
@@ -149,6 +155,13 @@ export default function AdminOrderDetailsPage() {
             <p><strong>وضعیت فعلی:</strong> <span className="font-semibold">{order.status}</span></p>
             <p><strong>کاربر:</strong> {order.userProfile?.full_name || order.user_id} ({order.userProfile?.email})</p>
             <p><strong>آشپز:</strong> {order.chefProfile?.full_name || (order.assigned_chef_id ? 'یافت نشد' : 'هنوز انتخاب نشده')} {order.chefProfile?.email ? `(${order.chefProfile.email})` : ''}</p>
+            {order.chat_rooms && (order.chat_rooms as { id: string } ).id && (
+                 <p><strong>چت روم: </strong>
+                    <Link href={`/dashboard/chat/${(order.chat_rooms as { id: string } ).id}`} className="text-blue-600 hover:underline">
+                        مشاهده گفتگو
+                    </Link>
+                 </p>
+            )}
             <p><strong>بودجه اولیه:</strong> {order.budget?.toLocaleString('fa-IR')} تومان</p>
             <p><strong>مبلغ نهایی (پس از پیشنهاد):</strong> {order.final_bid_amount?.toLocaleString('fa-IR') || 'نامشخص'} تومان</p>
             <p><strong>تعداد نفرات:</strong> {order.number_of_people || 'نامشخص'}</p>

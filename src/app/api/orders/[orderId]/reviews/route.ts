@@ -108,6 +108,28 @@ export async function POST(request: NextRequest, { params }: OrderReviewsRoutePa
     // The trigger `on_review_change_update_chef_stats` in DB should automatically update
     // `average_rating` and `total_reviews` in the `profiles` table for the chef.
 
+    // Create notification for the chef who received the review
+    if (orderData.assigned_chef_id) {
+        const notificationPayload = {
+            user_id: orderData.assigned_chef_id,
+            type: 'new_review',
+            title: `بازخورد جدید برای سفارش #${orderId.substring(0,8)}`,
+            message: `کاربر "${userProfile.fullName || 'ناشناس'}" برای عملکرد شما در سفارش #${orderId.substring(0,8)}، امتیاز ${rating} ستاره ثبت کرد.`,
+            link_to: `/dashboard/chef/profile?tab=reviews`, // Or link to specific order/review if preferred
+            metadata: {
+                orderId: orderId,
+                reviewId: newReview.id,
+                userId: userProfile.id,
+                userName: userProfile.fullName,
+                rating: rating
+            }
+        };
+        const { error: notificationError } = await supabase.from('notifications').insert(notificationPayload);
+        if (notificationError) {
+            console.error("Failed to create new_review notification for chef:", notificationError.message);
+        }
+    }
+
     return NextResponse.json({
       message: 'بازخورد شما با موفقیت ثبت شد. از شما سپاسگزاریم!',
       data: newReview,

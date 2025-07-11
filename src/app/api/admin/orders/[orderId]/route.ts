@@ -42,10 +42,11 @@ export async function GET(request: NextRequest, { params }: AdminOrderRouteParam
             *,
             reviewerProfile:profiles!reviews_user_id_fkey (*)
         ),
-        transactions!order_id (*)
+        transactions!order_id (*),
+        chat_rooms!order_id (id) -- Join to get chat room ID if exists
       `)
       .eq('id', orderId)
-      .maybeSingle(); // Use maybeSingle as orderId should be unique or might not exist
+      .maybeSingle();
 
     if (error) {
         console.error(`Error fetching details for order ${orderId} by admin:`, error.message);
@@ -151,6 +152,34 @@ export async function PATCH(request: NextRequest, { params }: AdminOrderRoutePar
     }
 
     // TODO: Send notifications to user/chef about the status change by admin.
+    const orderOwnerId = updatedOrder.user_id;
+    const assignedChefId = updatedOrder.assigned_chef_id;
+
+    const commonNotificationData = {
+        type: 'order_status_changed',
+        title: `وضعیت سفارش #${orderId.substring(0,8)} تغییر کرد`,
+        message: `وضعیت سفارش شما #${orderId.substring(0,8)} توسط مدیریت به '${newStatus}' تغییر یافت. ${admin_reason ? `دلیل: ${admin_reason}` : ''}`,
+        link_to: `/dashboard/user/orders/${orderId}`, // Default link for user
+        metadata: { orderId: orderId, newStatus: newStatus, changedBy: 'admin', adminReason: admin_reason }
+    };
+
+    // Notify order owner
+    if (orderOwnerId) {
+        const { error: userNoError } = await supabase.from('notifications').insert({ ...commonNotificationData, user_id: orderOwnerId });
+        if (userNoError) console.error(`Failed to notify user ${orderOwnerId} about order status change: ${userNoError.message}`);
+    }
+    // Notify assigned chef (if any and if status is relevant to them)
+    if (assignedChefId) {
+        const chefNotificationPayload = {
+            ...commonNotificationData,
+            user_id: assignedChefId,
+            message: `وضعیت سفارش #${orderId.substring(0,8)} که به شما تخصیص داده شده بود، توسط مدیریت به '${newStatus}' تغییر یافت. ${admin_reason ? `دلیل: ${admin_reason}` : ''}`,
+            link_to: `/dashboard/chef/orders/${orderId}` // Or active orders page
+        };
+        const { error: chefNoError } = await supabase.from('notifications').insert(chefNotificationPayload);
+        if (chefNoError) console.error(`Failed to notify chef ${assignedChefId} about order status change: ${chefNoError.message}`);
+    }
+
 
     return NextResponse.json({
       message: `وضعیت سفارش با موفقیت به '${newStatus}' تغییر یافت.`,

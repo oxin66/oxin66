@@ -162,10 +162,42 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
             console.log(`Chat room created for order ${bidData.order_id}`);
           }
         }
-        // TODO: Emit WebSocket events: to accepted chef, to other chefs, to order owner (confirmation)
-        // TODO: Notify user/chef about chat room creation or link to it.
-      } else { // newStatus === 'rejected'
-        // TODO: Emit WebSocket event: to rejected chef, to order owner (confirmation)
+        // TODO: Emit WebSocket events (Supabase Realtime will handle this via table subscription)
+
+        // Create notification for the chef whose bid status changed
+        const chefToNotifyId = bidData.chef_id;
+        let notificationTitle = '';
+        let notificationMessage = '';
+        let notificationType: 'bid_accepted' | 'bid_rejected' = 'bid_rejected'; // Default, will be overwritten
+
+        if (newStatus === 'accepted') {
+          notificationType = 'bid_accepted';
+          notificationTitle = `پیشنهاد شما برای سفارش #${bidData.order_id.substring(0,8)} پذیرفته شد!`;
+          notificationMessage = `کاربر پیشنهاد شما را برای سفارش ${bidData.order_id.substring(0,8)} پذیرفت. برای هماهنگی‌های بیشتر به بخش گفتگو مراجعه کنید.`;
+        } else if (newStatus === 'rejected') {
+          notificationType = 'bid_rejected';
+          notificationTitle = `پیشنهاد شما برای سفارش #${bidData.order_id.substring(0,8)} رد شد.`;
+          notificationMessage = `متأسفانه کاربر پیشنهاد شما را برای سفارش ${bidData.order_id.substring(0,8)} رد کرد.`;
+        }
+
+        if (chefToNotifyId && (newStatus === 'accepted' || newStatus === 'rejected')) {
+            const notificationPayload = {
+                user_id: chefToNotifyId,
+                type: notificationType,
+                title: notificationTitle,
+                message: notificationMessage,
+                link_to: `/dashboard/chef/orders/${bidData.order_id}`, // Link to the order details for chef
+                metadata: { orderId: bidData.order_id, bidId: bidId }
+            };
+            const { error: notificationError } = await supabase.from('notifications').insert(notificationPayload);
+            if (notificationError) {
+                console.error(`Failed to create ${notificationType} notification for chef ${chefToNotifyId}:`, notificationError.message);
+            }
+        }
+        // TODO: Notify user/chef about chat room creation if bid was accepted (already handled by chat room creation logic if it sends its own notification)
+
+      } else { // newStatus === 'rejected' (This else block is now part of the if above)
+        // Logic for 'rejected' is handled within the 'accepted' || 'rejected' block
       }
       return NextResponse.json({ message: `پیشنهاد با موفقیت '${newStatus === 'accepted' ? 'پذیرفته' : 'رد'}' شد.`, data: updatedBid }, { status: 200 });
 
@@ -174,14 +206,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       if (bidData.chef_id !== userProfile.id) {
         return NextResponse.json({ message: 'شما اجازه پس گرفتن این پیشنهاد را ندارید (مالک پیشنهاد نیستید).' }, { status: 403 });
       }
-      // RLS policy "Chefs can withdraw their own pending bids" should also enforce this.
 
       const { data: updatedBid, error: updateError } = await supabase
         .from('bids')
         .update({ status: newStatus, updated_at: new Date().toISOString() })
         .eq('id', bidId)
         .eq('chef_id', userProfile.id)
-        .eq('status', 'pending') // Ensure it's still pending
+        .eq('status', 'pending')
         .select()
         .single();
 
@@ -192,7 +223,23 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
        if (!updatedBid) {
         return NextResponse.json({ message: 'پس گرفتن پیشنهاد انجام نشد، ممکن است وضعیت آن تغییر کرده باشد.' }, { status: 409 });
       }
-      // TODO: Emit WebSocket event: to order owner that a bid was withdrawn.
+
+      // Create notification for the order owner that a bid was withdrawn
+      const orderOwnerId = (await supabase.from('orders').select('user_id').eq('id', bidData.order_id).single()).data?.user_id;
+      if (orderOwnerId) {
+        const notificationPayload = {
+            user_id: orderOwnerId,
+            type: 'bid_withdrawn',
+            title: `یک پیشنهاد برای سفارش #${bidData.order_id.substring(0,8)} پس گرفته شد`,
+            message: `آشپز "${userProfile.fullName || 'ناشناس'}" پیشنهاد خود را برای سفارش شما پس گرفت.`,
+            link_to: `/dashboard/user/orders/${bidData.order_id}`,
+            metadata: { orderId: bidData.order_id, bidId: bidId, chefId: userProfile.id }
+        };
+        const { error: notificationError } = await supabase.from('notifications').insert(notificationPayload);
+        if (notificationError) {
+            console.error(`Failed to create bid_withdrawn notification for user ${orderOwnerId}:`, notificationError.message);
+        }
+      }
       return NextResponse.json({ message: 'پیشنهاد شما با موفقیت پس گرفته شد.', data: updatedBid }, { status: 200 });
     } else {
       return NextResponse.json({ message: 'عملیات وضعیت نامعتبر است.' }, { status: 400 });

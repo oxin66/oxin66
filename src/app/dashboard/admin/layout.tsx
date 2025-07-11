@@ -35,6 +35,7 @@ export default async function AdminDashboardLayout({
               <p className="text-sm">
                 ادمین: {userProfile.fullName || userProfile.email}
               </p>
+              <NotificationBell />
               <SignOutButton />
             </div>
           </div>
